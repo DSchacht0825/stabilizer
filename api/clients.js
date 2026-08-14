@@ -1,4 +1,9 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+});
 
 const KEY = "stabilizer-clients";
 
@@ -37,11 +42,17 @@ const ALLOWED_STABILIZERS = new Set(["Caro", "Vanessa", "Alex", "Terminated", "R
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
+  if (!process.env.KV_REST_API_URL && !process.env.UPSTASH_REDIS_REST_URL) {
+    return res.status(500).json({
+      error: "No Redis store connected. In the Vercel dashboard, connect a database under Storage and redeploy."
+    });
+  }
+
   if (req.method === "GET") {
-    let list = await kv.get(KEY);
+    let list = await redis.get(KEY);
     if (!list) {
       list = SEED;
-      await kv.set(KEY, list);
+      await redis.set(KEY, list);
     }
     return res.status(200).json(list);
   }
@@ -61,7 +72,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Malformed client record" });
       }
     }
-    await kv.set(KEY, body);
+    await redis.set(KEY, body);
     return res.status(200).json({ ok: true, count: body.length });
   }
 
