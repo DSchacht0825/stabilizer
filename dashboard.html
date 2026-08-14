@@ -1,0 +1,793 @@
+<title>Stabilizer Caseload</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-raised: #ffffff;
+    --ink: #0b0b0b;
+    --ink-secondary: #52514e;
+    --ink-muted: #898781;
+    --border: rgba(11,11,11,0.10);
+    --border-strong: rgba(11,11,11,0.18);
+    --accent: #4a3aa7;
+    --accent-contrast: #ffffff;
+    --caro: #2a78d6;
+    --vanessa: #d9581e;
+    --alex: #0f8f5f;
+    --closed: #7a7873;
+    --danger: #b23a3a;
+    --danger-contrast: #ffffff;
+    --focus-ring: #4a3aa7;
+    --shadow: 0 1px 2px rgba(11,11,11,0.06), 0 8px 24px -12px rgba(11,11,11,0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-raised: #212120;
+      --ink: #ffffff;
+      --ink-secondary: #c3c2b7;
+      --ink-muted: #928f88;
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.18);
+      --accent: #9085e9;
+      --accent-contrast: #14121f;
+      --caro: #3987e5;
+      --vanessa: #f07c3c;
+      --alex: #2fb883;
+      --closed: #a4a19a;
+      --danger: #e2726f;
+      --danger-contrast: #2a0d0d;
+      --focus-ring: #9085e9;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-raised: #212120;
+    --ink: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #928f88;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --accent: #9085e9;
+    --accent-contrast: #14121f;
+    --caro: #3987e5;
+    --vanessa: #f07c3c;
+    --alex: #2fb883;
+    --closed: #a4a19a;
+    --danger: #e2726f;
+    --danger-contrast: #2a0d0d;
+    --focus-ring: #9085e9;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  header.page-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--ink-secondary);
+    margin: 0;
+  }
+
+  /* ---- caseload bars ---- */
+  .caseload {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+  .caseload-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin: 0 0 14px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 84px 1fr 34px;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .bar-row .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .bar-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.35s ease;
+  }
+  .bar-row .count {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-secondary);
+    text-align: right;
+  }
+  .caseload-foot {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+
+  /* ---- toolbar ---- */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .search {
+    flex: 1 1 200px;
+    min-width: 160px;
+    position: relative;
+  }
+  .search input {
+    width: 100%;
+    padding: 9px 12px 9px 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .search svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-muted);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink-secondary);
+    cursor: pointer;
+  }
+  .chip[data-active="true"] {
+    background: var(--ink);
+    color: var(--page);
+    border-color: var(--ink);
+  }
+  .add-btn {
+    margin-left: auto;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- add panel ---- */
+  .add-panel {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .add-panel[data-open="true"] { display: flex; }
+  .add-panel input[type="text"] {
+    flex: 1 1 220px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .add-panel select {
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .add-panel .ghost-btn, .add-panel .primary-btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .add-panel .primary-btn {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  .add-panel .ghost-btn {
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--ink-secondary);
+  }
+
+  /* ---- table ---- */
+  .table-shell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+  }
+  thead th.sortable { cursor: pointer; user-select: none; }
+  thead th.sortable:hover { color: var(--ink-secondary); }
+  thead th .arrow { opacity: 0.5; margin-left: 3px; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--page) 45%, var(--surface)); }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+  td { padding: 10px 16px; font-size: 14px; vertical-align: middle; }
+  td.name-cell { color: var(--ink); font-weight: 500; }
+  td.action-cell { width: 44px; text-align: right; }
+
+  .pill-select {
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 6px 28px 6px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.85'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .del-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    opacity: 0;
+    display: inline-flex;
+  }
+  tr:hover .del-btn, tr:focus-within .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+  .empty-state {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+
+  footer.page-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  footer.page-foot button {
+    font-family: inherit;
+    font-size: 12.5px;
+    background: none;
+    border: none;
+    color: var(--ink-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    padding: 0;
+  }
+  footer.page-foot button[data-armed="true"] { color: var(--danger); font-weight: 600; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 12px);
+    background: var(--ink);
+    color: var(--page);
+    padding: 10px 14px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 20;
+  }
+  .toast[data-show="true"] {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  .toast button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--page);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+</style>
+
+<div class="wrap">
+  <header class="page-head">
+    <h1>Stabilizer Caseload</h1>
+    <p class="subtitle">Housing case assignments by stabilizer. Click a status pill to reassign a client, or search below. Changes save automatically in this browser.</p>
+  </header>
+
+  <section class="caseload" aria-label="Active caseload by stabilizer">
+    <p class="caseload-title">Active caseload</p>
+    <div id="bars"></div>
+    <p class="caseload-foot" id="caseloadFoot"></p>
+  </section>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Search clients…" aria-label="Search clients">
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by stabilizer"></div>
+    <button class="add-btn" id="addToggle">+ Add client</button>
+  </div>
+
+  <div class="add-panel" id="addPanel">
+    <input type="text" id="newName" placeholder="Client name (Last, First)" aria-label="New client name">
+    <select id="newStabilizer" aria-label="Assign stabilizer"></select>
+    <button class="primary-btn" id="saveNew">Add</button>
+    <button class="ghost-btn" id="cancelNew">Cancel</button>
+  </div>
+
+  <div class="table-shell">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" id="sortName">Client name <span class="arrow" id="arrowName"></span></th>
+            <th class="sortable" id="sortStab">Assigned stabilizer <span class="arrow" id="arrowStab"></span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">No clients match your search.</div>
+  </div>
+
+  <footer class="page-foot">
+    <span id="countLabel"></span>
+    <button id="resetBtn">Reset to original list</button>
+  </footer>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastMsg"></span>
+  <button id="toastUndo">Undo</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STATUSES = [
+    { key: "Caro",      label: "Caro",               varName: "--caro" },
+    { key: "Vanessa",   label: "Vanessa",             varName: "--vanessa" },
+    { key: "Alex",      label: "Alex",                varName: "--alex" },
+    { key: "Terminated",label: "Terminated",          varName: "--closed" },
+    { key: "Reassessed",label: "VistaCAREs Reassessed", varName: "--closed" }
+  ];
+  var STAFF_KEYS = ["Caro", "Vanessa", "Alex"];
+  var STORE_KEY = "housing-stabilizer-dashboard-v1";
+
+  var SEED = [
+    ["Acevedo, Sergio","Caro"],["Alavez (Rodriguez), Marisol","Caro"],["Alfaro, Nancy","Caro"],
+    ["Anaya, Silvia","Vanessa"],["Arias, Javier","Caro"],["Bernal, Francisco","Caro"],
+    ["Bodjanac, Libusa","Vanessa"],["Bowles, William","Vanessa"],["Brant, Vanessa","Caro"],
+    ["Brunett, Brittney","Alex"],["Bugiel, Steven - OLD","Reassessed"],["Bugiel, Steven - REVISED","Alex"],
+    ["Burnett, David","Alex"],["Butler, Kaytlynn","Caro"],["Calderon, Khaliah","Vanessa"],
+    ["Carrera, Jacinto","Caro"],["Castillo, Spencer","Alex"],["Castleman, Modena","Vanessa"],
+    ["Cortez, Esteban OLD","Reassessed"],["Cortez, Esteban NEW","Vanessa"],["Davis, Diane","Caro"],
+    ["Deltoro, Trino","Alex"],["Enriquez, Mariana","Vanessa"],["Exline, Teresa","Caro"],
+    ["Faletogo, Demoana","Alex"],["Fauskee, Charles","Alex"],["Garcia, Georgina","Caro"],
+    ["Gonzalez Mora, Omare","Vanessa"],["Goodson, Katherine NEW","Alex"],["Goodson, Katherine Old","Reassessed"],
+    ["Gray, Stanley","Caro"],["Greer, Daniel","Alex"],["Greer, Dustin","Alex"],
+    ["Gutierrez, Veronica","Caro"],["Hale, Frank","Vanessa"],["Harriman, Deborah","Vanessa"],
+    ["Harris, Kimmely","Caro"],["Hawkins, Stephen","Caro"],["Heathman, Heather","Vanessa"],
+    ["Heneise, Samuel","Vanessa"],["Isales, James","Alex"],["Jacquet, Waverly","Alex"],
+    ["Jimenez, Jose","Caro"],["Johnson, Kathleen","Vanessa"],["Junkins, Shanera","Vanessa"],
+    ["Kappes, Gregory Ralph","Terminated"],["Karcher, Douglas","Alex"],["Kodzik, Sara","Vanessa"],
+    ["Lafayette, Kevin","Alex"],["Lopez, Monisa","Caro"],["Martinez, Bryan","Alex"],
+    ["Martinez, Samuel","Alex"],["McDonald, Michael","Vanessa"],["Miles, Cynthia","Terminated"],
+    ["Nares, Destynie","Vanessa"],["Nida, Wendy","Caro"],["Ochoa, Rogelio","Alex"],
+    ["Paisley, Jeff","Alex"],["Perkins, Joshua","Vanessa"],["Piatek, Martin","Alex"],
+    ["Quijano, Cesar","Caro"],["Quintero, Jorge","Caro"],["Quiroz, Richard","Caro"],
+    ["Reed, Susan","Alex"],["Richey, Marlin","Alex"],["Romano, Daniel","Caro"],
+    ["Sanchez, Jessica","Vanessa"],["Sanson, Antonio","Alex"],["Scanlon, Patrick","Vanessa"],
+    ["Smith, Cynthia","Vanessa"],["Smith, Steven T.","Caro"],["Solis, Jose","Caro"],
+    ["Steiner, Casandra OLD","Reassessed"],["Steiner, Cassandra NEW","Vanessa"],["Stone, Kelly","Terminated"],
+    ["Taylor, Rahman","Alex"],["Tucker, Tyler","Vanessa"],["Valdez, George","Alex"],
+    ["Williams, Kimberly","Caro"],["Young, Randall","Alex"]
+  ].map(function (row, i) { return { id: "seed-" + i, name: row[0], stabilizer: row[1] }; });
+
+  function statusMeta(key) {
+    for (var i = 0; i < STATUSES.length; i++) if (STATUSES[i].key === key) return STATUSES[i];
+    return STATUSES[0];
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return SEED.slice();
+  }
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  var data = load();
+  var filterKey = "All";
+  var searchTerm = "";
+  var sortField = "name";
+  var sortDir = 1;
+  var lastRemoved = null;
+  var toastTimer = null;
+  var resetArmed = false;
+
+  var bars = document.getElementById("bars");
+  var caseloadFoot = document.getElementById("caseloadFoot");
+  var chipsEl = document.getElementById("chips");
+  var tbody = document.getElementById("tbody");
+  var emptyState = document.getElementById("emptyState");
+  var countLabel = document.getElementById("countLabel");
+  var searchInput = document.getElementById("searchInput");
+  var addToggle = document.getElementById("addToggle");
+  var addPanel = document.getElementById("addPanel");
+  var newName = document.getElementById("newName");
+  var newStabilizer = document.getElementById("newStabilizer");
+  var toast = document.getElementById("toast");
+  var toastMsg = document.getElementById("toastMsg");
+  var arrowName = document.getElementById("arrowName");
+  var arrowStab = document.getElementById("arrowStab");
+  var resetBtn = document.getElementById("resetBtn");
+
+  STATUSES.forEach(function (s) {
+    var opt = document.createElement("option");
+    opt.value = s.key;
+    opt.textContent = s.label;
+    newStabilizer.appendChild(opt);
+  });
+
+  function buildChips() {
+    var counts = { All: data.length };
+    STATUSES.forEach(function (s) { counts[s.key] = 0; });
+    data.forEach(function (d) { counts[d.stabilizer] = (counts[d.stabilizer] || 0) + 1; });
+
+    chipsEl.innerHTML = "";
+    var allChip = makeChip("All", "All (" + counts.All + ")", filterKey === "All");
+    chipsEl.appendChild(allChip);
+    STATUSES.forEach(function (s) {
+      chipsEl.appendChild(makeChip(s.key, s.label + " (" + (counts[s.key] || 0) + ")", filterKey === s.key));
+    });
+  }
+  function makeChip(key, label, active) {
+    var b = document.createElement("button");
+    b.className = "chip";
+    b.type = "button";
+    b.dataset.active = active ? "true" : "false";
+    b.textContent = label;
+    b.addEventListener("click", function () { filterKey = key; render(); });
+    return b;
+  }
+
+  function renderBars() {
+    var counts = {};
+    STAFF_KEYS.forEach(function (k) { counts[k] = 0; });
+    var closed = 0;
+    data.forEach(function (d) {
+      if (counts.hasOwnProperty(d.stabilizer)) counts[d.stabilizer]++;
+      else closed++;
+    });
+    var max = Math.max.apply(null, STAFF_KEYS.map(function (k) { return counts[k]; }).concat([1]));
+
+    bars.innerHTML = "";
+    STAFF_KEYS.forEach(function (k) {
+      var meta = statusMeta(k);
+      var row = document.createElement("div");
+      row.className = "bar-row";
+      var pct = Math.round((counts[k] / max) * 100);
+      row.innerHTML =
+        '<span class="name">' + meta.label + '</span>' +
+        '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:var(' + meta.varName + ')"></span></span>' +
+        '<span class="count">' + counts[k] + '</span>';
+      bars.appendChild(row);
+    });
+    caseloadFoot.textContent = closed + " closed (terminated or reassessed) · " + data.length + " total records";
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function getFiltered() {
+    var term = searchTerm.trim().toLowerCase();
+    var rows = data.filter(function (d) {
+      if (filterKey !== "All" && d.stabilizer !== filterKey) return false;
+      if (term && d.name.toLowerCase().indexOf(term) === -1) return false;
+      return true;
+    });
+    rows.sort(function (a, b) {
+      var av, bv;
+      if (sortField === "name") { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+      else { av = statusMeta(a.stabilizer).label + a.name.toLowerCase(); bv = statusMeta(b.stabilizer).label + b.name.toLowerCase(); }
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return 1 * sortDir;
+      return 0;
+    });
+    return rows;
+  }
+
+  function renderTable() {
+    var rows = getFiltered();
+    tbody.innerHTML = "";
+    emptyState.style.display = rows.length ? "none" : "block";
+
+    rows.forEach(function (d) {
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      tdName.className = "name-cell";
+      tdName.textContent = d.name;
+      tr.appendChild(tdName);
+
+      var tdStab = document.createElement("td");
+      var sel = document.createElement("select");
+      sel.className = "pill-select";
+      STATUSES.forEach(function (s) {
+        var opt = document.createElement("option");
+        opt.value = s.key;
+        opt.textContent = s.label;
+        if (s.key === d.stabilizer) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      applyPillColor(sel, d.stabilizer);
+      sel.addEventListener("change", function () {
+        d.stabilizer = sel.value;
+        applyPillColor(sel, d.stabilizer);
+        persist();
+        renderBars();
+        buildChips();
+      });
+      tdStab.appendChild(sel);
+      tr.appendChild(tdStab);
+
+      var tdAction = document.createElement("td");
+      tdAction.className = "action-cell";
+      var del = document.createElement("button");
+      del.className = "del-btn";
+      del.type = "button";
+      del.setAttribute("aria-label", "Remove " + d.name);
+      del.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+      del.addEventListener("click", function () { removeClient(d.id); });
+      tdAction.appendChild(del);
+      tr.appendChild(tdAction);
+
+      tbody.appendChild(tr);
+    });
+
+    countLabel.textContent = rows.length + (rows.length === 1 ? " client shown" : " clients shown") +
+      (rows.length !== data.length ? " of " + data.length : "");
+  }
+
+  function applyPillColor(sel, key) {
+    var meta = statusMeta(key);
+    sel.style.background = "var(" + meta.varName + ")";
+    sel.style.color = (key === "Terminated" || key === "Reassessed") ? "var(--page)" : "#ffffff";
+  }
+
+  function removeClient(id) {
+    var idx = data.findIndex(function (d) { return d.id === id; });
+    if (idx === -1) return;
+    lastRemoved = { item: data[idx], index: idx };
+    data.splice(idx, 1);
+    persist();
+    showToast(lastRemoved.item.name + " removed", true);
+    render();
+  }
+
+  function showToast(msg, allowUndo) {
+    toastMsg.textContent = msg;
+    document.getElementById("toastUndo").style.display = allowUndo ? "inline" : "none";
+    toast.dataset.show = "true";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.dataset.show = "false"; }, 6000);
+  }
+
+  document.getElementById("toastUndo").addEventListener("click", function () {
+    if (!lastRemoved) return;
+    data.splice(lastRemoved.index, 0, lastRemoved.item);
+    lastRemoved = null;
+    persist();
+    toast.dataset.show = "false";
+    render();
+  });
+
+  function render() {
+    buildChips();
+    renderBars();
+    renderTable();
+  }
+
+  searchInput.addEventListener("input", function () {
+    searchTerm = searchInput.value;
+    renderTable();
+    countLabel.textContent = document.getElementById("tbody").children.length +
+      (document.getElementById("tbody").children.length === 1 ? " client shown" : " clients shown") +
+      " of " + data.length;
+  });
+
+  addToggle.addEventListener("click", function () {
+    var open = addPanel.dataset.open === "true";
+    addPanel.dataset.open = open ? "false" : "true";
+    if (!open) newName.focus();
+  });
+  document.getElementById("cancelNew").addEventListener("click", function () {
+    addPanel.dataset.open = "false";
+    newName.value = "";
+  });
+  document.getElementById("saveNew").addEventListener("click", addClient);
+  newName.addEventListener("keydown", function (e) { if (e.key === "Enter") addClient(); });
+
+  function addClient() {
+    var name = newName.value.trim();
+    if (!name) { newName.focus(); return; }
+    data.push({ id: "c-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), name: name, stabilizer: newStabilizer.value });
+    persist();
+    newName.value = "";
+    addPanel.dataset.open = "false";
+    filterKey = "All";
+    searchTerm = "";
+    searchInput.value = "";
+    render();
+  }
+
+  document.getElementById("sortName").addEventListener("click", function () {
+    if (sortField === "name") sortDir *= -1; else { sortField = "name"; sortDir = 1; }
+    updateArrows();
+    renderTable();
+  });
+  document.getElementById("sortStab").addEventListener("click", function () {
+    if (sortField === "stab") sortDir *= -1; else { sortField = "stab"; sortDir = 1; }
+    updateArrows();
+    renderTable();
+  });
+  function updateArrows() {
+    arrowName.textContent = sortField === "name" ? (sortDir === 1 ? "↑" : "↓") : "";
+    arrowStab.textContent = sortField === "stab" ? (sortDir === 1 ? "↑" : "↓") : "";
+  }
+
+  resetBtn.addEventListener("click", function () {
+    if (!resetArmed) {
+      resetArmed = true;
+      resetBtn.textContent = "Click again to confirm reset";
+      resetBtn.dataset.armed = "true";
+      setTimeout(function () {
+        resetArmed = false;
+        resetBtn.textContent = "Reset to original list";
+        resetBtn.dataset.armed = "false";
+      }, 4000);
+      return;
+    }
+    data = SEED.slice();
+    persist();
+    resetArmed = false;
+    resetBtn.textContent = "Reset to original list";
+    resetBtn.dataset.armed = "false";
+    showToast("List reset to original 80 clients", false);
+    render();
+  });
+
+  updateArrows();
+  render();
+})();
+</script>
