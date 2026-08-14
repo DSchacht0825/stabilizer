@@ -370,6 +370,8 @@
     padding: 0;
   }
   footer.page-foot button[data-armed="true"] { color: var(--danger); font-weight: 600; }
+  .sync-status { font-style: italic; }
+  .sync-status[data-state="error"] { color: var(--danger); font-style: normal; font-weight: 600; }
 
   .toast {
     position: fixed;
@@ -411,7 +413,7 @@
 <div class="wrap">
   <header class="page-head">
     <h1>Stabilizer Caseload</h1>
-    <p class="subtitle">Housing case assignments by stabilizer. Click a status pill to reassign a client, or search below. Changes save automatically in this browser.</p>
+    <p class="subtitle">Housing case assignments by stabilizer. Click a status pill to reassign a client, or search below. Changes save to the shared list for everyone.</p>
   </header>
 
   <section class="caseload" aria-label="Active caseload by stabilizer">
@@ -454,6 +456,7 @@
 
   <footer class="page-foot">
     <span id="countLabel"></span>
+    <span id="syncStatus" class="sync-status" aria-live="polite"></span>
     <button id="resetBtn">Reset to original list</button>
   </footer>
 </div>
@@ -475,7 +478,7 @@
     { key: "Reassessed",label: "VistaCAREs Reassessed", varName: "--closed" }
   ];
   var STAFF_KEYS = ["Caro", "Vanessa", "Alex"];
-  var STORE_KEY = "housing-stabilizer-dashboard-v1";
+  var API_URL = "/api/clients";
 
   var SEED = [
     ["Acevedo, Sergio","Caro"],["Alavez (Rodriguez), Marisol","Caro"],["Alfaro, Nancy","Caro"],
@@ -512,18 +515,41 @@
     return STATUSES[0];
   }
 
-  function load() {
-    try {
-      var raw = localStorage.getItem(STORE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return SEED.slice();
+  function apiGet() {
+    return fetch(API_URL, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("load failed");
+      return r.json();
+    });
+  }
+  function apiSave(list) {
+    return fetch(API_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(list)
+    }).then(function (r) {
+      if (!r.ok) throw new Error("save failed");
+      return r.json();
+    });
+  }
+  function setSyncStatus(state) {
+    var el = document.getElementById("syncStatus");
+    if (!el) return;
+    el.dataset.state = state;
+    if (state === "loading") el.textContent = "Loading shared list…";
+    else if (state === "saving") el.textContent = "Saving…";
+    else if (state === "saved") el.textContent = "Saved to shared list";
+    else if (state === "error") el.textContent = "Couldn't save — check your connection";
   }
   function persist() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) {}
+    setSyncStatus("saving");
+    apiSave(data).then(function () {
+      setSyncStatus("saved");
+    }).catch(function () {
+      setSyncStatus("error");
+    });
   }
 
-  var data = load();
+  var data = [];
   var filterKey = "All";
   var searchTerm = "";
   var sortField = "name";
@@ -601,12 +627,6 @@
       bars.appendChild(row);
     });
     caseloadFoot.textContent = closed + " closed (terminated or reassessed) · " + data.length + " total records";
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
   }
 
   function getFiltered() {
@@ -769,7 +789,7 @@
   resetBtn.addEventListener("click", function () {
     if (!resetArmed) {
       resetArmed = true;
-      resetBtn.textContent = "Click again to confirm reset";
+      resetBtn.textContent = "Click again to reset for everyone";
       resetBtn.dataset.armed = "true";
       setTimeout(function () {
         resetArmed = false;
@@ -783,11 +803,32 @@
     resetArmed = false;
     resetBtn.textContent = "Reset to original list";
     resetBtn.dataset.armed = "false";
-    showToast("List reset to original 80 clients", false);
+    showToast("List reset to original 80 clients for everyone", false);
     render();
   });
 
+  function refreshFromServer() {
+    if (addPanel.dataset.open === "true") return;
+    apiGet().then(function (list) {
+      data = list;
+      render();
+    }).catch(function () {});
+  }
+
   updateArrows();
-  render();
+  tbody.innerHTML = '<tr><td colspan="3" style="padding:24px 16px;color:var(--ink-muted);">Loading shared list…</td></tr>';
+  setSyncStatus("loading");
+  apiGet().then(function (list) {
+    data = list;
+    setSyncStatus("saved");
+    render();
+  }).catch(function () {
+    setSyncStatus("error");
+    emptyState.textContent = "Couldn't load the shared list. Check your connection and reload the page.";
+    emptyState.style.display = "block";
+  });
+
+  setInterval(refreshFromServer, 15000);
+  window.addEventListener("focus", refreshFromServer);
 })();
 </script>
