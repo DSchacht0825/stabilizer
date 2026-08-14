@@ -120,34 +120,46 @@
     color: var(--ink-muted);
     margin: 0 0 14px;
   }
-  .bar-row {
-    display: grid;
-    grid-template-columns: 84px 1fr 34px;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 0;
+  .meter {
+    display: flex;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--border);
+    gap: 2px;
   }
-  .bar-row .name {
+  .meter-seg {
+    height: 100%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    min-width: 3px;
+    transition: flex-basis 0.35s ease;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 14px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     font-size: 13px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .legend-name {
     font-weight: 600;
     color: var(--ink);
   }
-  .bar-track {
-    height: 8px;
-    background: var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.35s ease;
-  }
-  .bar-row .count {
-    font-size: 13px;
+  .legend-count {
     font-variant-numeric: tabular-nums;
     color: var(--ink-secondary);
-    text-align: right;
   }
   .caseload-foot {
     margin-top: 10px;
@@ -418,7 +430,8 @@
 
   <section class="caseload" aria-label="Active caseload by stabilizer">
     <p class="caseload-title">Active caseload</p>
-    <div id="bars"></div>
+    <div class="meter" id="meter"></div>
+    <div class="legend" id="legend"></div>
     <p class="caseload-foot" id="caseloadFoot"></p>
   </section>
 
@@ -558,7 +571,8 @@
   var toastTimer = null;
   var resetArmed = false;
 
-  var bars = document.getElementById("bars");
+  var meterEl = document.getElementById("meter");
+  var legendEl = document.getElementById("legend");
   var caseloadFoot = document.getElementById("caseloadFoot");
   var chipsEl = document.getElementById("chips");
   var tbody = document.getElementById("tbody");
@@ -612,20 +626,30 @@
       if (counts.hasOwnProperty(d.stabilizer)) counts[d.stabilizer]++;
       else closed++;
     });
-    var max = Math.max.apply(null, STAFF_KEYS.map(function (k) { return counts[k]; }).concat([1]));
+    var total = STAFF_KEYS.reduce(function (sum, k) { return sum + counts[k]; }, 0) || 1;
 
-    bars.innerHTML = "";
+    meterEl.innerHTML = "";
+    legendEl.innerHTML = "";
     STAFF_KEYS.forEach(function (k) {
       var meta = statusMeta(k);
-      var row = document.createElement("div");
-      row.className = "bar-row";
-      var pct = Math.round((counts[k] / max) * 100);
-      row.innerHTML =
-        '<span class="name">' + meta.label + '</span>' +
-        '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:var(' + meta.varName + ')"></span></span>' +
-        '<span class="count">' + counts[k] + '</span>';
-      bars.appendChild(row);
+      var pct = (counts[k] / total) * 100;
+
+      var seg = document.createElement("span");
+      seg.className = "meter-seg";
+      seg.style.flexBasis = pct + "%";
+      seg.style.background = "var(" + meta.varName + ")";
+      seg.title = meta.label + ": " + counts[k];
+      meterEl.appendChild(seg);
+
+      var item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML =
+        '<span class="legend-dot" style="background:var(' + meta.varName + ')"></span>' +
+        '<span class="legend-name">' + meta.label + '</span>' +
+        '<span class="legend-count">' + counts[k] + '</span>';
+      legendEl.appendChild(item);
     });
+
     caseloadFoot.textContent = closed + " closed (terminated or reassessed) · " + data.length + " total records";
   }
 
