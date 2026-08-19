@@ -35,9 +35,10 @@ const SEED = [
   ["Steiner, Casandra OLD","Reassessed"],["Steiner, Cassandra NEW","Vanessa"],["Stone, Kelly","Terminated"],
   ["Taylor, Rahman","Alex"],["Tucker, Tyler","Vanessa"],["Valdez, George","Alex"],
   ["Williams, Kimberly","Caro"],["Young, Randall","Alex"]
-].map(function (row, i) { return { id: "seed-" + i, name: row[0], stabilizer: row[1] }; });
+].map(function (row, i) { return { id: "seed-" + i, name: row[0], stabilizer: row[1], assignedDate: null }; });
 
 const ALLOWED_STABILIZERS = new Set(["Caro", "Vanessa", "Alex", "Terminated", "Reassessed"]);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -67,7 +68,8 @@ export default async function handler(req, res) {
         typeof item.id !== "string" ||
         typeof item.name !== "string" ||
         !item.name.trim() ||
-        !ALLOWED_STABILIZERS.has(item.stabilizer)
+        !ALLOWED_STABILIZERS.has(item.stabilizer) ||
+        (item.assignedDate != null && !DATE_RE.test(item.assignedDate))
       ) {
         return res.status(400).json({ error: "Malformed client record" });
       }

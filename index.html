@@ -270,6 +270,16 @@
     font-size: 14px;
     font-family: inherit;
   }
+  .date-input {
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink);
+    font-size: 13px;
+    font-family: inherit;
+    color-scheme: inherit;
+  }
   .add-panel .ghost-btn, .add-panel .primary-btn {
     font-family: inherit;
     font-size: 13.5px;
@@ -447,6 +457,7 @@
   <div class="add-panel" id="addPanel">
     <input type="text" id="newName" placeholder="Client name (Last, First)" aria-label="New client name">
     <select id="newStabilizer" aria-label="Assign stabilizer"></select>
+    <input type="date" id="newDate" class="date-input" aria-label="Date assigned">
     <button class="primary-btn" id="saveNew">Add</button>
     <button class="ghost-btn" id="cancelNew">Cancel</button>
   </div>
@@ -458,6 +469,7 @@
           <tr>
             <th class="sortable" id="sortName">Client name <span class="arrow" id="arrowName"></span></th>
             <th class="sortable" id="sortStab">Assigned stabilizer <span class="arrow" id="arrowStab"></span></th>
+            <th>Date assigned</th>
             <th></th>
           </tr>
         </thead>
@@ -521,7 +533,14 @@
     ["Steiner, Casandra OLD","Reassessed"],["Steiner, Cassandra NEW","Vanessa"],["Stone, Kelly","Terminated"],
     ["Taylor, Rahman","Alex"],["Tucker, Tyler","Vanessa"],["Valdez, George","Alex"],
     ["Williams, Kimberly","Caro"],["Young, Randall","Alex"]
-  ].map(function (row, i) { return { id: "seed-" + i, name: row[0], stabilizer: row[1] }; });
+  ].map(function (row, i) { return { id: "seed-" + i, name: row[0], stabilizer: row[1], assignedDate: null }; });
+
+  function todayISO() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
 
   function statusMeta(key) {
     for (var i = 0; i < STATUSES.length; i++) if (STATUSES[i].key === key) return STATUSES[i];
@@ -583,6 +602,7 @@
   var addPanel = document.getElementById("addPanel");
   var newName = document.getElementById("newName");
   var newStabilizer = document.getElementById("newStabilizer");
+  var newDate = document.getElementById("newDate");
   var toast = document.getElementById("toast");
   var toastMsg = document.getElementById("toastMsg");
   var arrowName = document.getElementById("arrowName");
@@ -684,6 +704,18 @@
       tdName.textContent = d.name;
       tr.appendChild(tdName);
 
+      var tdDate = document.createElement("td");
+      var dateInput = document.createElement("input");
+      dateInput.type = "date";
+      dateInput.className = "date-input";
+      dateInput.value = d.assignedDate || "";
+      dateInput.setAttribute("aria-label", "Date assigned to " + d.name);
+      dateInput.addEventListener("change", function () {
+        d.assignedDate = dateInput.value || null;
+        persist();
+      });
+      tdDate.appendChild(dateInput);
+
       var tdStab = document.createElement("td");
       var sel = document.createElement("select");
       sel.className = "pill-select";
@@ -698,12 +730,17 @@
       sel.addEventListener("change", function () {
         d.stabilizer = sel.value;
         applyPillColor(sel, d.stabilizer);
+        if (!d.assignedDate) {
+          d.assignedDate = todayISO();
+          dateInput.value = d.assignedDate;
+        }
         persist();
         renderBars();
         buildChips();
       });
       tdStab.appendChild(sel);
       tr.appendChild(tdStab);
+      tr.appendChild(tdDate);
 
       var tdAction = document.createElement("td");
       tdAction.className = "action-cell";
@@ -773,11 +810,15 @@
   addToggle.addEventListener("click", function () {
     var open = addPanel.dataset.open === "true";
     addPanel.dataset.open = open ? "false" : "true";
-    if (!open) newName.focus();
+    if (!open) {
+      newDate.value = todayISO();
+      newName.focus();
+    }
   });
   document.getElementById("cancelNew").addEventListener("click", function () {
     addPanel.dataset.open = "false";
     newName.value = "";
+    newDate.value = "";
   });
   document.getElementById("saveNew").addEventListener("click", addClient);
   newName.addEventListener("keydown", function (e) { if (e.key === "Enter") addClient(); });
@@ -785,9 +826,15 @@
   function addClient() {
     var name = newName.value.trim();
     if (!name) { newName.focus(); return; }
-    data.push({ id: "c-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), name: name, stabilizer: newStabilizer.value });
+    data.push({
+      id: "c-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      name: name,
+      stabilizer: newStabilizer.value,
+      assignedDate: newDate.value || null
+    });
     persist();
     newName.value = "";
+    newDate.value = "";
     addPanel.dataset.open = "false";
     filterKey = "All";
     searchTerm = "";
@@ -840,7 +887,7 @@
   }
 
   updateArrows();
-  tbody.innerHTML = '<tr><td colspan="3" style="padding:24px 16px;color:var(--ink-muted);">Loading shared list…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="padding:24px 16px;color:var(--ink-muted);">Loading shared list…</td></tr>';
   setSyncStatus("loading");
   apiGet().then(function (list) {
     data = list;
